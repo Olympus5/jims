@@ -6,7 +6,6 @@ import org.apache.sshd.client.SshClient;
 import org.apache.sshd.client.session.ClientSession;
 import org.apache.sshd.common.file.virtualfs.VirtualFileSystemFactory;
 import org.apache.sshd.server.SshServer;
-import org.apache.sshd.server.auth.UserAuthFactory;
 import org.apache.sshd.server.auth.UserAuthNoneFactory;
 import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider;
 import org.apache.sshd.sftp.client.SftpClient;
@@ -38,8 +37,7 @@ public class AppTest {
         server = SshServer.setUpDefaultServer();
         server.setPort(2222);
         server.setKeyPairProvider(new SimpleGeneratorHostKeyProvider());
-        final List<UserAuthFactory> userAuthFactories = List.of(UserAuthNoneFactory.INSTANCE);
-        server.setUserAuthFactories(userAuthFactories);
+        server.setUserAuthFactories(List.of(UserAuthNoneFactory.INSTANCE));
         serverFs = Jimfs.newFileSystem(Configuration.unix());
         // TODO: replace vfs with a cleaner solution.
         server.setFileSystemFactory(new VirtualFileSystemFactory(serverFs.getPath("/work").toAbsolutePath()));
@@ -61,7 +59,29 @@ public class AppTest {
      * Rigorous Test :-)
      */
     @Test
-    public void shouldAnswerWithTrue() throws IOException, URISyntaxException {
+    public void putFile() throws IOException, URISyntaxException {
+        final ClientSession session = client.connect("test", "localhost", 2222).verify().getSession();
+        session.auth().verify();
+        final SftpClient sftpClient = SftpClientFactory.instance().createSftpClient(session);
+        final Path srcFile = clientFs.provider().getPath(this.getClass().getClassLoader().getResource("test.txt").toURI()).toAbsolutePath();
+
+        sftpClient.put(srcFile, "test.txt");
+
+        assertArrayEquals(Files.readAllBytes(srcFile), Files.readAllBytes(serverFs.getPath("/work/test.txt")));
+    }
+
+    @Test
+    void putFileAfterServerRestart() throws IOException, URISyntaxException {
+        server.stop(true);
+        server = SshServer.setUpDefaultServer();
+        server.setPort(2222);
+        server.setKeyPairProvider(new SimpleGeneratorHostKeyProvider());
+        server.setUserAuthFactories(List.of(UserAuthNoneFactory.INSTANCE));
+        serverFs = Jimfs.newFileSystem(Configuration.unix());
+        // TODO: replace vfs with a cleaner solution.
+        server.setFileSystemFactory(new VirtualFileSystemFactory(serverFs.getPath("/work").toAbsolutePath()));
+        server.setSubsystemFactories(Collections.singletonList(new SftpSubsystemFactory.Builder().build()));
+        server.start();
         final ClientSession session = client.connect("test", "localhost", 2222).verify().getSession();
         session.auth().verify();
         final SftpClient sftpClient = SftpClientFactory.instance().createSftpClient(session);
