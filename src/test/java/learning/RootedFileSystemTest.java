@@ -1,4 +1,4 @@
-package fr.olympus5.learning;
+package learning;
 
 import com.google.common.jimfs.Configuration;
 import com.google.common.jimfs.Jimfs;
