@@ -56,14 +56,14 @@ public class AppTest {
      */
     @Test
     public void putFile() throws IOException, URISyntaxException {
-        final ClientSession session = client.connect("test", "localhost", 2222).verify().getSession();
+        final ClientSession session = client.connect("testuser", "localhost", 2222).verify().getSession();
         session.auth().verify();
         final SftpClient sftpClient = SftpClientFactory.instance().createSftpClient(session);
         final Path srcFile = clientFs.provider().getPath(this.getClass().getClassLoader().getResource("test.txt").toURI()).toAbsolutePath();
 
-        sftpClient.put(srcFile, "test.txt");
+        sftpClient.put(srcFile, "/test.txt");
 
-        assertArrayEquals(Files.readAllBytes(srcFile), Files.readAllBytes(serverFs.getPath("/work/test.txt")));
+        assertArrayEquals(Files.readAllBytes(srcFile), Files.readAllBytes(serverFs.getPath("/test.txt")));
     }
 
     @Test
@@ -72,14 +72,14 @@ public class AppTest {
         serverFs = Jimfs.newFileSystem(Configuration.unix());
         server = getSshServer(serverFs, PORT);
         server.start();
-        final ClientSession session = client.connect("test", "localhost", 2222).verify().getSession();
+        final ClientSession session = client.connect("testuser", "localhost", 2222).verify().getSession();
         session.auth().verify();
         final SftpClient sftpClient = SftpClientFactory.instance().createSftpClient(session);
         final Path srcFile = clientFs.provider().getPath(this.getClass().getClassLoader().getResource("test.txt").toURI()).toAbsolutePath();
 
-        sftpClient.put(srcFile, "test.txt");
+        sftpClient.put(srcFile, "/test.txt");
 
-        assertArrayEquals(Files.readAllBytes(srcFile), Files.readAllBytes(serverFs.getPath("/work/test.txt")));
+        assertArrayEquals(Files.readAllBytes(srcFile), Files.readAllBytes(serverFs.getPath("/test.txt")));
     }
 
     private static SshServer getSshServer(final FileSystem serverFs, final int port) {
@@ -88,7 +88,7 @@ public class AppTest {
         server.setKeyPairProvider(new SimpleGeneratorHostKeyProvider());
         server.setUserAuthFactories(List.of(UserAuthNoneFactory.INSTANCE));
         // TODO: replace vfs with a cleaner solution.
-        server.setFileSystemFactory(new VirtualFileSystemFactory(serverFs.getPath("/work").toAbsolutePath()));
+        server.setFileSystemFactory(new VirtualFileSystemFactory(serverFs.getPath("/").toAbsolutePath()));
         server.setSubsystemFactories(Collections.singletonList(new SftpSubsystemFactory.Builder().build()));
         return server;
     }
