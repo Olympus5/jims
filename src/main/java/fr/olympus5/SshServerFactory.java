@@ -11,12 +11,14 @@ import java.util.Collections;
 import java.util.List;
 
 public class SshServerFactory {
+    private static final String UNIX_ROOT_DIR = "/";
+
     public static SshServer getSshServer(final FileSystem serverFs, final int port) {
         final SshServer server = SshServer.setUpDefaultServer();
         server.setPort(port);
         server.setKeyPairProvider(new SimpleGeneratorHostKeyProvider());
         server.setUserAuthFactories(List.of(UserAuthNoneFactory.INSTANCE));
-        server.setFileSystemFactory(new VirtualFileSystemFactory(serverFs.getPath("/").toAbsolutePath()));
+        server.setFileSystemFactory(new VirtualFileSystemFactory(serverFs.getPath(UNIX_ROOT_DIR).toAbsolutePath()));
         server.setSubsystemFactories(Collections.singletonList(new SftpSubsystemFactory.Builder().build()));
         return server;
     }

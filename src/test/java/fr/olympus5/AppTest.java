@@ -31,7 +31,7 @@ public class AppTest {
     @BeforeEach
     void setUp() throws IOException {
         serverFs = Jimfs.newFileSystem(Configuration.unix());
-        server = SshServerFactory.getSshServer(serverFs, 2222);
+        server = SshServerFactory.getSshServer(serverFs, PORT);
         server.start();
 
         client = SshClient.setUpDefaultClient();
@@ -50,7 +50,7 @@ public class AppTest {
      */
     @Test
     public void putFile() throws IOException, URISyntaxException {
-        final ClientSession session = client.connect("testuser", "localhost", 2222).verify().getSession();
+        final ClientSession session = client.connect("testuser", "localhost", PORT).verify().getSession();
         session.auth().verify();
         final SftpClient sftpClient = SftpClientFactory.instance().createSftpClient(session);
         final Path srcFile = clientFs.provider().getPath(this.getClass().getClassLoader().getResource("test.txt").toURI()).toAbsolutePath();
@@ -63,10 +63,9 @@ public class AppTest {
     @Test
     void putFileAfterServerRestart() throws IOException, URISyntaxException {
         server.stop(true);
-        serverFs = Jimfs.newFileSystem(Configuration.unix());
         server = SshServerFactory.getSshServer(serverFs, PORT);
         server.start();
-        final ClientSession session = client.connect("testuser", "localhost", 2222).verify().getSession();
+        final ClientSession session = client.connect("testuser", "localhost", PORT).verify().getSession();
         session.auth().verify();
         final SftpClient sftpClient = SftpClientFactory.instance().createSftpClient(session);
         final Path srcFile = clientFs.provider().getPath(this.getClass().getClassLoader().getResource("test.txt").toURI()).toAbsolutePath();
