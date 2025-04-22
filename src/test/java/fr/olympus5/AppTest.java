@@ -34,14 +34,8 @@ public class AppTest {
 
     @BeforeEach
     void setUp() throws IOException {
-        server = SshServer.setUpDefaultServer();
-        server.setPort(2222);
-        server.setKeyPairProvider(new SimpleGeneratorHostKeyProvider());
-        server.setUserAuthFactories(List.of(UserAuthNoneFactory.INSTANCE));
         serverFs = Jimfs.newFileSystem(Configuration.unix());
-        // TODO: replace vfs with a cleaner solution.
-        server.setFileSystemFactory(new VirtualFileSystemFactory(serverFs.getPath("/work").toAbsolutePath()));
-        server.setSubsystemFactories(Collections.singletonList(new SftpSubsystemFactory.Builder().build()));
+        server = getSshServer(serverFs);
         server.start();
 
         client = SshClient.setUpDefaultClient();
@@ -73,14 +67,8 @@ public class AppTest {
     @Test
     void putFileAfterServerRestart() throws IOException, URISyntaxException {
         server.stop(true);
-        server = SshServer.setUpDefaultServer();
-        server.setPort(2222);
-        server.setKeyPairProvider(new SimpleGeneratorHostKeyProvider());
-        server.setUserAuthFactories(List.of(UserAuthNoneFactory.INSTANCE));
         serverFs = Jimfs.newFileSystem(Configuration.unix());
-        // TODO: replace vfs with a cleaner solution.
-        server.setFileSystemFactory(new VirtualFileSystemFactory(serverFs.getPath("/work").toAbsolutePath()));
-        server.setSubsystemFactories(Collections.singletonList(new SftpSubsystemFactory.Builder().build()));
+        server = getSshServer(serverFs);
         server.start();
         final ClientSession session = client.connect("test", "localhost", 2222).verify().getSession();
         session.auth().verify();
@@ -90,5 +78,16 @@ public class AppTest {
         sftpClient.put(srcFile, "test.txt");
 
         assertArrayEquals(Files.readAllBytes(srcFile), Files.readAllBytes(serverFs.getPath("/work/test.txt")));
+    }
+
+    private static SshServer getSshServer(final FileSystem serverFs) {
+        final SshServer server = SshServer.setUpDefaultServer();
+        server.setPort(2222);
+        server.setKeyPairProvider(new SimpleGeneratorHostKeyProvider());
+        server.setUserAuthFactories(List.of(UserAuthNoneFactory.INSTANCE));
+        // TODO: replace vfs with a cleaner solution.
+        server.setFileSystemFactory(new VirtualFileSystemFactory(serverFs.getPath("/work").toAbsolutePath()));
+        server.setSubsystemFactories(Collections.singletonList(new SftpSubsystemFactory.Builder().build()));
+        return server;
     }
 }
