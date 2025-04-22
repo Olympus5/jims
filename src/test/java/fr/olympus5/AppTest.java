@@ -27,6 +27,8 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
  * Unit test for simple App.
  */
 public class AppTest {
+    private static final int PORT = 2222;
+
     private SshServer server;
     private FileSystem serverFs;
     private SshClient client;
@@ -35,7 +37,7 @@ public class AppTest {
     @BeforeEach
     void setUp() throws IOException {
         serverFs = Jimfs.newFileSystem(Configuration.unix());
-        server = getSshServer(serverFs);
+        server = getSshServer(serverFs, 2222);
         server.start();
 
         client = SshClient.setUpDefaultClient();
@@ -68,7 +70,7 @@ public class AppTest {
     void putFileAfterServerRestart() throws IOException, URISyntaxException {
         server.stop(true);
         serverFs = Jimfs.newFileSystem(Configuration.unix());
-        server = getSshServer(serverFs);
+        server = getSshServer(serverFs, PORT);
         server.start();
         final ClientSession session = client.connect("test", "localhost", 2222).verify().getSession();
         session.auth().verify();
@@ -80,9 +82,9 @@ public class AppTest {
         assertArrayEquals(Files.readAllBytes(srcFile), Files.readAllBytes(serverFs.getPath("/work/test.txt")));
     }
 
-    private static SshServer getSshServer(final FileSystem serverFs) {
+    private static SshServer getSshServer(final FileSystem serverFs, final int port) {
         final SshServer server = SshServer.setUpDefaultServer();
-        server.setPort(2222);
+        server.setPort(port);
         server.setKeyPairProvider(new SimpleGeneratorHostKeyProvider());
         server.setUserAuthFactories(List.of(UserAuthNoneFactory.INSTANCE));
         // TODO: replace vfs with a cleaner solution.
